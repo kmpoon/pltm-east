@@ -1,0 +1,154 @@
+package org.latlab.analysis.miCurve;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.latlab.data.MixedDataSet;
+import org.latlab.data.io.arff.ArffLoader;
+import org.latlab.io.bif.BifParser;
+import org.latlab.model.Gltm;
+import org.latlab.reasoner.NaturalCliqueTreePropagation;
+import org.latlab.util.DiscreteVariable;
+import org.latlab.util.Function;
+
+/**
+ * Computes the classification probabilities for each latent variable.
+ * 
+ * @author leonard
+ * 
+ */
+public class ClassificationComputer {
+
+	/**
+	 * @param args
+	 * @throws Exception
+	 * @throws FileNotFoundException
+	 */
+	public static void main(String[] args) throws Exception {
+		if (args.length < 3) {
+			System.out.println("ClassificationComputer "
+					+ "model_file data_file output_prefix");
+			return;
+		}
+
+		MixedDataSet data = ArffLoader.load(args[1]);
+		int classIndex = data.variables().size() - 1;
+		data.setClassVariable(data.variables().get(classIndex));
+		data.removeMissingInstances();
+
+		Gltm model =
+				new BifParser(new FileInputStream(args[0]), "UTF-8").parse(new Gltm());
+		data.synchronize(model);
+
+		ClassificationComputer computer =
+				new ClassificationComputer(model, data, args[2]);
+		computer.compute();
+		computer.computeForTarget();
+	}
+
+	private final Gltm model;
+	private final MixedDataSet data;
+	private final String prefix;
+	private final NaturalCliqueTreePropagation propagation;
+	private final Map<DiscreteVariable, PrintWriter> outputs;
+
+	public ClassificationComputer(Gltm model, MixedDataSet data, String prefix) {
+		this.model = model;
+		this.data = data;
+		this.prefix = prefix;
+		this.propagation = new NaturalCliqueTreePropagation(model);
+		outputs = new HashMap<DiscreteVariable, PrintWriter>();
+	}
+
+	public void compute() throws FileNotFoundException {
+		Set<DiscreteVariable> latentVariables = model.getInternalVars();
+		for (DiscreteVariable latent : latentVariables) {
+			PrintWriter output = openFile(latent);
+			outputs.put(latent, output);
+			writeHeader(latent, output);
+		}
+
+		for (int i = 0; i < data.size(); i++) {
+			propagation.use(data.getEvidences(i));
+			propagation.propagate();
+
+			for (DiscreteVariable latent : latentVariables) {
+				Function probabilities = propagation.getMarginal(latent);
+				writeLine(i, probabilities, outputs.get(latent));
+			}
+		}
+
+		for (DiscreteVariable latent : latentVariables) {
+			outputs.get(latent).close();
+		}
+	}
+
+	public void computeForTarget() throws FileNotFoundException {
+		DiscreteVariable classVariable = data.getClassVariable();
+		int classIndex = data.indexOf(classVariable);
+
+		PrintWriter output = openFile(classVariable);
+
+		writeHeader(classVariable, output);
+
+		for (int i = 0; i < data.size(); i++) {
+			double state = data.get(i).value(classIndex);
+			Function probabilities =
+					Function.createIndicatorFunction(classVariable, (int) state);
+			writeLine(i, probabilities, output);
+
+		}
+
+		output.close();
+	}
+
+	private PrintWriter openFile(DiscreteVariable latent)
+			throws FileNotFoundException {
+		String filename =
+				prefix + "." + latent.getName() + ".classification.csv";
+		return new PrintWriter(filename);
+	}
+
+	private void writeHeader(DiscreteVariable latent, PrintWriter output) {
+		List<String> values =
+				new ArrayList<String>(latent.getCardinality() + 1);
+
+		values.add("\"\"");
+		for (String state : latent.getStates()) {
+			values.add("\"" + state + "\"");
+		}
+
+		write(values, output, ",");
+	}
+
+	private void writeLine(int index, Function probabilities, PrintWriter output) {
+		double[] cells = probabilities.getCells();
+
+		List<String> values = new ArrayList<String>(cells.length + 1);
+		values.add("\"" + index + "\"");
+
+		for (double cell : cells) {
+			values.add(Double.toString(cell));
+		}
+
+		write(values, output, ",");
+	}
+
+	private void write(List<String> values, PrintWriter output, String separator) {
+		for (int i = 0; i < values.size(); i++) {
+			output.write(values.get(i));
+
+			if (i < values.size() - 1) {
+				output.print(separator);
+			}
+		}
+
+		output.println();
+	}
+}

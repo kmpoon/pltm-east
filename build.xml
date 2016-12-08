@@ -1,0 +1,66 @@
+<project name="latlab" default="zip-dist" basedir=".">
+	<property name="src" location="src" />
+	<property name="build" location="bin" />
+	<property name="dist" location="dist" />
+	<property name="javacc-home" location="lib" />
+	<property name="ant.build.javac.target" value="1.7" />
+
+	<path id="project.lib.path">
+		<pathelement location="lib/colt.jar" />
+		<pathelement location="lib/commons-cli-1.2.jar" />
+	</path>
+
+	<path id="project.class.path">
+		<path refid="project.lib.path" />
+		<pathelement location="${build}" />
+	</path>
+
+	<target name="compile">
+		<mkdir dir="${build}" />
+		<javacc target="${src}/org/latlab/io/bif/BifParser.jj" javacchome="${javacc-home}" />
+		<javacc target="${src}/org/latlab/data/io/arff/ArffParser.jj" javacchome="${javacc-home}" />
+		<javac srcdir="${src}" destdir="${build}" target="1.7">
+			<classpath refid="project.lib.path" />
+		</javac>
+	</target>
+
+	<target name="copy-resource">
+		<copy todir="${build}">
+			<fileset dir="${src}" excludes="**/*.java" />
+		</copy>
+	</target>
+
+	<target name="dist" description="generate the distribution" depends="clean,compile,copy-resource">
+		<!-- Create the distribution directory -->
+		<mkdir dir="${dist}" />
+
+		<!-- Put everything in ${build} into the Lantern-${DSTAMP}.jar file -->
+		<jar jarfile="${dist}/latlab.jar" basedir="${build}" />
+		<!--<jar jarfile="${dist}/latlab-src.jar" basedir="${src}"/>-->
+		<copy todir="${dist}" file="settings.xml" />
+		<copy todir="${dist}" file="lib/colt.jar" />
+		<copy todir="${dist}" file="lib/commons-cli-1.2.jar" />
+		<copy todir="${dist}" file="lib/colt-license.html" />
+		<copy todir="${dist}" file="lib/commons-cli-license.html" />
+		<copy todir="${dist}" file="run.sh" />
+		<chmod file="${dist}/run.sh" perm="gu+x" />
+		<copy todir="${dist}" file="classify.sh" />
+		<chmod file="${dist}/classify.sh" perm="gu+x" />
+		<copy todir="${dist}" file="evaluateNMI.sh" />
+		<chmod file="${dist}/evaluateNMI.sh" perm="gu+x" />
+		<copy todir="${dist}" file="readme.txt" />
+
+		<mkdir dir="${dist}/data" />
+		<copy todir="${dist}/data">
+			<fileset dir="data" includes="*.arff" />
+		</copy>
+		<mkdir dir="${dist}/output" />
+		<mkdir dir="${dist}/tmp" />
+	</target>
+
+	<target name="clean" description="clean up the build directory">
+		<delete dir="${build}" />
+		<delete dir="${dist}" />
+	</target>
+
+</project>
