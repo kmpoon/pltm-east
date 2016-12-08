@@ -6,6 +6,7 @@ facilitate" (ICML 2010).  It also contains the sub-directory data where
 data sets in ARFF format can be found.
 
 The directory includes shell scripts for running on Unix machines.  
+
 To learn PLTM (named output.bif) on a data set (e.g. data/iris.arff):
 
 ```bash
