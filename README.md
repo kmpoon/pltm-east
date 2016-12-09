@@ -43,3 +43,8 @@ probabilities of a latent variable for every data case.  It will also
 generate a CSV file for the class variable.
 
 For any inquiries, please email kmpoon@eduhk.hk.
+
+## References
+
+- Leonard K. M. Poon, Nevin L. Zhang, Tao Chen, and Yi Wang (2010). [Variable Selection in Model-Based Clustering: To Do or To Facilitate](http://www.cse.ust.hk/~lkmpoon/papers/pltm-icml10.pdf). ICML-2010.
+- Leonard K. M. Poon, Nevin L. Zhang, Tengfei Liu, and April H. Liu (2012). [Model-Based Clustering of High-Dimensional Data: Variable Selection versus Facet Determination](http://www.cse.ust.hk/~lkmpoon/papers/ijar2012.pdf). IJAR.
