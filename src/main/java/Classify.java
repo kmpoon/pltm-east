@@ -9,12 +9,22 @@ public class Classify {
 	 */
 	public static void main(String[] args) throws Exception {
 		if (args.length < 2) {
-			System.out.println("Classify data_file model_file");
+			System.out.println("Classify [--allow-missing] data_file model_file");
 			return;
 		}
 
-		String name = FileName.getName(args[1]);
+		int start = 0;
+		boolean allowMissing = false;
 
-		ClassificationComputer.main(new String[] { args[1], args[0], name });
+		if (args[start].equals("--allow-missing")) {
+			start++;
+			allowMissing = true;
+		}
+
+		String dataFile = args[start];
+		String modelFile = args[start + 1];
+		String name = FileName.getName(modelFile);
+
+		ClassificationComputer.run(modelFile, dataFile, name, allowMissing);
 	}
 }

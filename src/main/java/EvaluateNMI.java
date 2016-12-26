@@ -22,15 +22,27 @@ public class EvaluateNMI {
 	 */
 	public static void main(String[] args) throws Exception {
 		if (args.length < 2) {
-			System.out.println("EvaluateNMI data_file model_file [model_file...]");
+			System.out.println("EvaluateNMI [--allow-missing] data_file model_file [model_file...]");
 			return;
 		}
+		
+		int start = 0;
+		boolean allowMissing = false;
+		
+		if (args[start].equals("--allow-missing")) {
+			start++;
+			allowMissing = true;
+		}
 
-		MixedDataSet data = ArffLoader.load(args[0]);
+		MixedDataSet data = ArffLoader.load(args[start]);
+		start++;
 		data.setClassVariableToLast();
-		data.removeMissingInstances();
+		
+		if (!allowMissing)
+			data.removeMissingInstances();
+		
 
-		for (int i = 1; i < args.length; i++) {
+		for (int i = start; i < args.length; i++) {
 			Gltm model =
 					new BifParser(new FileInputStream(args[i])).parse(new Gltm());
 			data.synchronize(model);

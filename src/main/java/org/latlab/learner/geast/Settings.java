@@ -144,8 +144,15 @@ public class Settings {
 		GeastSettings settings = new GeastSettings();
 		Element element =
 				(Element) document.getElementsByTagName("settings").item(0);
-		settings.threads =
+
+		// if the number of threads in setting file is non-positive, it sets the
+		// number of threads equal to number of cores
+		int threads =
 				getAttributeValue(element, "threads", Geast.DEFAULT_THREADS);
+		settings.threads =
+				threads > 0 ? threads
+						: Runtime.getRuntime().availableProcessors();
+				
 		settings.screening =
 				getAttributeValue(element, "screening", Geast.DEFAULT_SCREENING);
 		settings.threshold =

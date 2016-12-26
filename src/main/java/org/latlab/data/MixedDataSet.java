@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.latlab.learner.geast.NormalSufficientStatistics;
 import org.latlab.model.Gltm;
 import org.latlab.reasoner.Evidences;
 import org.latlab.util.Algorithm;
@@ -15,6 +14,7 @@ import org.latlab.util.ReferencePredicate;
 import org.latlab.util.SingularContinuousVariable;
 import org.latlab.util.Variable;
 
+import cern.colt.matrix.DoubleFactory1D;
 import cern.colt.matrix.DoubleFactory2D;
 import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
@@ -43,8 +43,7 @@ public class MixedDataSet {
 	 */
 	private final Map<Variable, Integer> map;
 
-	public static MixedDataSet createEmpty(List<Variable> variables,
-			int capacity) {
+	public static MixedDataSet createEmpty(List<Variable> variables, int capacity) {
 		return new MixedDataSet(variables, capacity);
 	}
 
@@ -55,8 +54,8 @@ public class MixedDataSet {
 
 	public MixedDataSet(String name, Collection<Variable> variables,
 			Collection<Instance> instances) {
-		this(name, new ArrayList<Variable>(variables), new ArrayList<Instance>(
-				instances));
+		this(name, new ArrayList<Variable>(variables),
+				new ArrayList<Instance>(instances));
 	}
 
 	private MixedDataSet(String name, ArrayList<Variable> variables,
@@ -80,16 +79,75 @@ public class MixedDataSet {
 	}
 
 	private void computeMeanAndCovariance() {
-		NormalSufficientStatistics statistics =
-				new NormalSufficientStatistics(variables.size());
+		// since the data may contain missing values, we can't use the
+		// NormalSufficientStatistics to compute mean and covariance
 
-		for (int i = 0; i < size(); i++) {
-			Instance instance = get(i);
-			statistics.add(convertToVector(instance), instance.weight());
+		double[] m = computeMean();
+		mean = DoubleFactory1D.dense.make(m);
+		covariance = DoubleFactory2D.dense.make(computeCovariance(m));
+	}
+
+	private double[] computeMean() {
+		double[] count = new double[variables.size()];
+		double[] mean = new double[variables.size()];
+
+		for (int j = 0; j < variables.size(); j++)
+			count[j] = mean[j] = 0;
+
+		for (Instance instance : instances) {
+			for (int j = 0; j < variables.size(); j++) {
+				if (!instance.isMissing(j)) {
+					count[j] += instance.weight();
+					mean[j] += instance.value(j) * instance.weight();
+				}
+			}
 		}
 
-		mean = statistics.computeMean();
-		covariance = statistics.computeCovariance();
+		for (int j = 0; j < variables.size(); j++) {
+			if (count[j] > 0)
+				mean[j] = mean[j] / count[j];
+			else
+				mean[j] = 0;
+		}
+
+		return mean;
+	}
+
+	private double[][] computeCovariance(double[] mean) {
+		double[][] count = new double[variables.size()][variables.size()];
+		double[][] covariance = new double[variables.size()][variables.size()];
+
+		for (int j = 0; j < variables.size(); j++)
+			for (int k = 0; k < variables.size(); k++)
+				count[j][k] = covariance[j][k] = 0;
+
+		for (Instance instance : instances) {
+
+			for (int j = 0; j < variables.size(); j++) {
+				if (instance.isMissing(j))
+					continue;
+
+				for (int k = 0; k < variables.size(); k++) {
+					if (instance.isMissing(k))
+						continue;
+
+					count[j][k] += instance.weight();
+					covariance[j][k] += ((instance.value(j) - mean[j])
+							* (instance.value(k) - mean[k])) * instance.weight();
+				}
+			}
+		}
+
+		for (int j = 0; j < variables.size(); j++) {
+			for (int k = 0; k < variables.size(); k++) {
+				if (count[j][k] > 0)
+					covariance[j][k] = covariance[j][k] / (count[j][k]);
+				else
+					covariance[j][k] = 0;
+			}
+		}
+
+		return covariance;
 	}
 
 	public DoubleMatrix1D mean() {
@@ -201,11 +259,26 @@ public class MixedDataSet {
 	 * @return
 	 */
 	private DoubleMatrix1D convertToVector(Instance instance) {
+		return convertToVector(instance, false);
+	}
+
+	/**
+	 * Converts a instance into a vector form. If {@code allowMissing} is true,
+	 * missing values will be converted to NaN.
+	 * 
+	 * @param instance
+	 * @return
+	 */
+	private DoubleMatrix1D convertToVector(Instance instance, boolean allowMissing) {
 		DoubleMatrix1D vector = new DenseDoubleMatrix1D(variables.size());
 		for (int i = 0; i < variables.size(); i++) {
-			if (instance.isMissing(i))
-				return null;
-			vector.setQuick(i, instance.value(i));
+			if (instance.isMissing(i)) {
+				if (allowMissing)
+					vector.setQuick(i, Double.NaN);
+				else
+					return null;
+			} else
+				vector.setQuick(i, instance.value(i));
 		}
 
 		return vector;
@@ -238,12 +311,13 @@ public class MixedDataSet {
 			// check the variables
 			if (!attribute.getClass().equals(variable.getClass())) {
 				throw new IllegalArgumentException(String.format(
-						"Variable [%s] has mismatched type.",
-						variable.getName()));
+						"Variable [%s] has mismatched type.", variable.getName()));
 			}
 
 			if (attribute instanceof DiscreteVariable) {
-				if (((DiscreteVariable) attribute).getCardinality() != ((DiscreteVariable) variable).getCardinality()) {
+				if (((DiscreteVariable) attribute)
+						.getCardinality() != ((DiscreteVariable) variable)
+								.getCardinality()) {
 					throw new IllegalArgumentException(String.format(
 							"Variable [%s] has mismatched number of states.",
 							variable.getName()));
@@ -290,8 +364,7 @@ public class MixedDataSet {
 	}
 
 	public DiscreteVariable getClassVariable() {
-		return hasClassVariable() ? (DiscreteVariable) variables.get(classIndex)
-				: null;
+		return hasClassVariable() ? (DiscreteVariable) variables.get(classIndex) : null;
 	}
 
 	public int classIndex() {
@@ -302,8 +375,8 @@ public class MixedDataSet {
 		if (!hasClassVariable())
 			return variables();
 
-		return Algorithm.filter(variables(), new NotPredicate<Variable>(
-				new ReferencePredicate(getClassVariable())));
+		return Algorithm.filter(variables(),
+				new NotPredicate<Variable>(new ReferencePredicate(getClassVariable())));
 	}
 
 	public void removeMissingInstances() {

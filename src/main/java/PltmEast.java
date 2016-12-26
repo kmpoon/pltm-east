@@ -47,7 +47,9 @@ public class PltmEast {
 		String dataName = FileName.getNameOfLastComponent(dataFileName);
 
 		data.setClassVariable(getClassVariable(data, line));
-		data.removeMissingInstances();
+
+		if (line.hasOption('m'))
+			data.removeMissingInstances();
 
 		StringBuilder originalLine = new StringBuilder("PltmEast");
 		for (String arg : args) {
@@ -64,8 +66,7 @@ public class PltmEast {
 		Gltm initial = null;
 		String initialModelName = line.getOptionValue('i', null);
 		if (initialModelName != null) {
-			BifParser parser =
-					new BifParser(new FileInputStream(initialModelName));
+			BifParser parser = new BifParser(new FileInputStream(initialModelName));
 			initial = parser.parse(new Gltm());
 			data.synchronize(initial);
 		}
@@ -123,8 +124,7 @@ public class PltmEast {
 		}
 
 		if (classIndex < -1 || classIndex >= data.variables().size()) {
-			throw new IllegalArgumentException(
-					"Index of class variable is out of range");
+			throw new IllegalArgumentException("Index of class variable is out of range");
 		}
 
 		return classIndex >= 0 ? data.variables().get(classIndex) : null;
@@ -134,19 +134,21 @@ public class PltmEast {
 	private static Options getOptions() {
 		Options options = new Options();
 
-		options.addOption(OptionBuilder.hasArg().withArgName("model_file").withDescription(
-				"start the search from an initial model").withLongOpt(
-				"initial-model").create('i'));
-		options.addOption(OptionBuilder.hasArg().withArgName("setting_file").withDescription(
-				"use the specified settings file (default: settings.xml)").withLongOpt(
-				"setting").create('s'));
-		options.addOption(OptionBuilder.hasArg().withArgName("class_variable").withDescription(
-				"specify the zero-based index of class variable, "
-						+ "or none, first, last (default: last)").withLongOpt(
-				"class").create('c'));
-		options.addOption(OptionBuilder.hasArg().withArgName("output_file").withDescription(
-				"specify the output BIF file (default: output.bif)").withLongOpt(
-				"output-file").create('o'));
+		options.addOption(OptionBuilder.hasArg().withArgName("model_file")
+				.withDescription("start the search from an initial model")
+				.withLongOpt("initial-model").create('i'));
+		options.addOption(OptionBuilder.hasArg().withArgName("setting_file")
+				.withDescription(
+						"use the specified settings file (default: settings.xml)")
+				.withLongOpt("setting").create('s'));
+		options.addOption(OptionBuilder.hasArg().withArgName("class_variable")
+				.withDescription("specify the zero-based index of class variable, "
+						+ "or none, first, last (default: last)")
+				.withLongOpt("class").create('c'));
+		options.addOption(OptionBuilder.hasArg().withArgName("output_file")
+				.withDescription("specify the output BIF file (default: output.bif)")
+				.withLongOpt("output-file").create('o'));
+		options.addOption("m", "allow-missing", false, "allow missing data");
 
 		return options;
 	}

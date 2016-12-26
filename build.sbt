@@ -15,6 +15,8 @@ EclipseKeys.withSource := true
 
 EclipseKeys.withJavadoc := true
 
+assemblyJarName in assembly := "pltm-east.jar"
+
 // EclipseKeys.eclipseOutput := Some("target")
 
 // Compile the project before generating Eclipse files, so that generated .scala or .class files for views and routes are present

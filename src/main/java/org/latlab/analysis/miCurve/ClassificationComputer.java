@@ -32,22 +32,28 @@ public class ClassificationComputer {
 	 */
 	public static void main(String[] args) throws Exception {
 		if (args.length < 3) {
-			System.out.println("ClassificationComputer "
-					+ "model_file data_file output_prefix");
+			System.out.println(
+					"ClassificationComputer " + "model_file data_file output_prefix");
 			return;
 		}
+		
+		run(args[0], args[1], args[2], false);
+	}
 
-		MixedDataSet data = ArffLoader.load(args[1]);
-		int classIndex = data.variables().size() - 1;
-		data.setClassVariable(data.variables().get(classIndex));
-		data.removeMissingInstances();
+	public static void run(String modelFile, String dataFile, String outputPrefix,
+			boolean allowMissing) throws Exception {
+		MixedDataSet data = ArffLoader.load(dataFile);
+		data.setClassVariableToLast();
 
-		Gltm model =
-				new BifParser(new FileInputStream(args[0]), "UTF-8").parse(new Gltm());
+		if (!allowMissing)
+			data.removeMissingInstances();
+
+		Gltm model = new BifParser(new FileInputStream(modelFile), "UTF-8")
+				.parse(new Gltm());
 		data.synchronize(model);
 
-		ClassificationComputer computer =
-				new ClassificationComputer(model, data, args[2]);
+		ClassificationComputer computer = new ClassificationComputer(model, data,
+				outputPrefix);
 		computer.compute();
 		computer.computeForTarget();
 	}
@@ -99,8 +105,8 @@ public class ClassificationComputer {
 
 		for (int i = 0; i < data.size(); i++) {
 			double state = data.get(i).value(classIndex);
-			Function probabilities =
-					Function.createIndicatorFunction(classVariable, (int) state);
+			Function probabilities = Function.createIndicatorFunction(classVariable,
+					(int) state);
 			writeLine(i, probabilities, output);
 
 		}
@@ -108,16 +114,13 @@ public class ClassificationComputer {
 		output.close();
 	}
 
-	private PrintWriter openFile(DiscreteVariable latent)
-			throws FileNotFoundException {
-		String filename =
-				prefix + "." + latent.getName() + ".classification.csv";
+	private PrintWriter openFile(DiscreteVariable latent) throws FileNotFoundException {
+		String filename = prefix + "." + latent.getName() + ".classification.csv";
 		return new PrintWriter(filename);
 	}
 
 	private void writeHeader(DiscreteVariable latent, PrintWriter output) {
-		List<String> values =
-				new ArrayList<String>(latent.getCardinality() + 1);
+		List<String> values = new ArrayList<String>(latent.getCardinality() + 1);
 
 		values.add("\"\"");
 		for (String state : latent.getStates()) {
