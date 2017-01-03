@@ -1,9 +1,9 @@
 <project name="latlab" default="zip-dist" basedir=".">
-	<property name="src" location="src" />
+	<property name="src" location="src/main/java" />
 	<property name="build" location="bin" />
 	<property name="dist" location="dist" />
 	<property name="javacc-home" location="lib" />
-	<property name="ant.build.javac.target" value="1.7" />
+	<property name="ant.build.javac.target" value="1.8" />
 
 	<path id="project.lib.path">
 		<pathelement location="lib/colt.jar" />
@@ -19,7 +19,7 @@
 		<mkdir dir="${build}" />
 		<javacc target="${src}/org/latlab/io/bif/BifParser.jj" javacchome="${javacc-home}" />
 		<javacc target="${src}/org/latlab/data/io/arff/ArffParser.jj" javacchome="${javacc-home}" />
-		<javac srcdir="${src}" destdir="${build}" target="1.7">
+		<javac srcdir="${src}" destdir="${build}" target="1.8">
 			<classpath refid="project.lib.path" />
 		</javac>
 	</target>

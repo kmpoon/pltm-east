@@ -7,11 +7,27 @@ data sets in ARFF format can be found.
 
 The directory includes shell scripts for running on Unix machines.  
 
-To learn PLTM (named output.bif) on a data set (e.g. data/iris.arff):
+To learn PLTM (named `output.bif`) on a data set (e.g. `data/iris.arff`):
 
 ```bash
 $ ./run.sh data/iris.arff
 ```
+
+To show the options of PLTM-EAST, type `run.sh` without any parameters:
+
+```bash
+$ ./run.sh 
+usage: Geast [OPTION] data_file
+ -c,--class <class_variable>       specify the zero-based index of class
+                                   variable, or none, first, last
+                                   (default: last)
+ -i,--initial-model <model_file>   start the search from an initial model
+ -m,--allow-missing                allow missing data
+ -o,--output-file <output_file>    specify the output BIF file (default:
+                                   output.bif)
+ -s,--setting <setting_file>       use the specified settings file
+                                   (default: settings.xml)
+```                                   
 
 To specify the output file name:
 
@@ -41,6 +57,19 @@ $ ./classify.sh data/iris.arff iris.bif
 It will generate several CSV files, each of which contains the marginal 
 probabilities of a latent variable for every data case.  It will also
 generate a CSV file for the class variable.
+
+## Compile
+
+To compile the source code and create the distribution directory, type the 
+following command in the project directory:
+
+```bash
+$ ant dist
+```
+
+The distribution directory can be found in the `dist` directory.
+
+## Enquiry
 
 For any inquiries, please email kmpoon@eduhk.hk.
 
