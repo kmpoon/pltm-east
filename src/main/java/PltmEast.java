@@ -155,6 +155,6 @@ public class PltmEast {
 
 	private static void printUsage(Options options) {
 		HelpFormatter formatter = new HelpFormatter();
-		formatter.printHelp("Geast [OPTION] data_file", options);
+		formatter.printHelp("PltmEast [OPTION] data_file", options);
 	}
 }

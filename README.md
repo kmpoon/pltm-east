@@ -17,7 +17,7 @@ To show the options of PLTM-EAST, type `run.sh` without any parameters:
 
 ```bash
 $ ./run.sh 
-usage: Geast [OPTION] data_file
+usage: PltmEast [OPTION] data_file
  -c,--class <class_variable>       specify the zero-based index of class
                                    variable, or none, first, last
                                    (default: last)
