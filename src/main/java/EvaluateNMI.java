@@ -15,6 +15,10 @@ import org.latlab.util.Function;
 import org.latlab.util.Utils;
 
 public class EvaluateNMI {
+	private static class Result {
+		public DiscreteVariable variable;
+		public double nmi;
+	}
 
 	/**
 	 * @param args
@@ -22,13 +26,14 @@ public class EvaluateNMI {
 	 */
 	public static void main(String[] args) throws Exception {
 		if (args.length < 2) {
-			System.out.println("EvaluateNMI [--allow-missing] data_file model_file [model_file...]");
+			System.out.println(
+					"EvaluateNMI [--allow-missing] data_file model_file [model_file...]");
 			return;
 		}
-		
+
 		int start = 0;
 		boolean allowMissing = false;
-		
+
 		if (args[start].equals("--allow-missing")) {
 			start++;
 			allowMissing = true;
@@ -37,38 +42,36 @@ public class EvaluateNMI {
 		MixedDataSet data = ArffLoader.load(args[start]);
 		start++;
 		data.setClassVariableToLast();
-		
+
 		if (!allowMissing)
 			data.removeMissingInstances();
-		
 
 		for (int i = start; i < args.length; i++) {
-			Gltm model =
-					new BifParser(new FileInputStream(args[i])).parse(new Gltm());
+			Gltm model = new BifParser(new FileInputStream(args[i])).parse(new Gltm());
 			data.synchronize(model);
-			double nmi = evaluateNMI(data, model);
-			System.out.println(args[i] + ": " + nmi);
+			Result result = evaluateNMI(data, model);
+			System.out.printf("%s [%s]: %f", args[i], result.variable.toString(),
+					result.nmi);
 		}
 	}
 
-	private static double evaluateNMI(MixedDataSet data, Gltm model) {
+	private static Result evaluateNMI(MixedDataSet data, Gltm model) {
 		DiscreteVariable classVariable = data.getClassVariable();
 
-		List<DiscreteVariable> latents =
-				new ArrayList<DiscreteVariable>(model.getInternalVars());
+		List<DiscreteVariable> latents = new ArrayList<DiscreteVariable>(
+				model.getInternalVars());
 
 		List<Function> joints = new ArrayList<Function>(latents.size());
 		for (DiscreteVariable latent : latents) {
-			joints.add(Function.createFunction(Arrays.asList(classVariable,
-					latent)));
+			joints.add(Function.createFunction(Arrays.asList(classVariable, latent)));
 		}
 
 		DataPropagation propagations = new SharedTreePropagation(model, data);
 
 		for (int i = 0; i < data.size(); i++) {
 			int classLabel = (int) data.get(i).value(data.classIndex());
-			Function classProbability =
-					Function.createIndicatorFunction(classVariable, classLabel);
+			Function classProbability = Function.createIndicatorFunction(classVariable,
+					classLabel);
 
 			NaturalCliqueTreePropagation propagation = propagations.compute(i);
 			for (int l = 0; l < latents.size(); l++) {
@@ -78,14 +81,21 @@ public class EvaluateNMI {
 			}
 		}
 
-		double max = -1;
+		Result result = new Result();
+		result.nmi = -1;
 
 		for (Function joint : joints) {
 			joint.normalize();
 			double nmi = Utils.computeNormalizedMutualInformation(joint);
-			max = Math.max(max, nmi);
+
+			if (nmi > result.nmi) {
+				result.nmi = nmi;
+				for (DiscreteVariable v : joint.getVariables())
+					if (v != classVariable)
+						result.variable = v;
+			}
 		}
 
-		return max;
+		return result;
 	}
 }
