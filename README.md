@@ -69,6 +69,8 @@ $ ant dist
 
 The distribution directory can be found in the `dist` directory.
 
+To compile it using Eclipse, you will need to install the [JavaCC Eclipse Plug-in](http://eclipse-javacc.sourceforge.net).
+
 ## Enquiry
 
 For any inquiries, please email kmpoon@eduhk.hk.
