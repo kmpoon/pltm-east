@@ -79,3 +79,5 @@ For any inquiries, please email kmpoon@eduhk.hk.
 
 - Leonard K. M. Poon, Nevin L. Zhang, Tao Chen, and Yi Wang (2010). [Variable Selection in Model-Based Clustering: To Do or To Facilitate](http://www.cse.ust.hk/~lkmpoon/papers/pltm-icml10.pdf). ICML-2010.
 - Leonard K. M. Poon, Nevin L. Zhang, Tengfei Liu, and April H. Liu (2012). [Model-Based Clustering of High-Dimensional Data: Variable Selection versus Facet Determination](http://www.cse.ust.hk/~lkmpoon/papers/ijar2012.pdf). IJAR.
+- Leonard K. M. Poon (2017). [Clustering with Multidimensional Mixture Models: Analysis on World Development Indicators
+Leonard K. M. Poon](https://link.springer.com/chapter/10.1007/978-3-319-59072-1_19). ISNN.
