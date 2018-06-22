@@ -15,6 +15,7 @@ import org.latlab.learner.geast.Geast;
 import org.latlab.learner.geast.IModelWithScore;
 import org.latlab.learner.geast.Settings;
 import org.latlab.model.Gltm;
+import org.latlab.util.BuildConfig;
 import org.latlab.util.FileName;
 import org.latlab.util.Variable;
 
@@ -77,6 +78,8 @@ public class PltmEast {
 		geast.commandLine = originalLine.toString();
 
 		String outputFileName = line.getOptionValue('o', "output.bif");
+		
+		BuildConfig.init();
 
 		IModelWithScore output = null;
 		if (initial == null)
@@ -87,6 +90,8 @@ public class PltmEast {
 		if (outputFileName != null && output != null) {
 			new BifWriter(new FileOutputStream(outputFileName)).write(output);
 		}
+		
+		BuildConfig.cleanup();
 	}
 
 	/**

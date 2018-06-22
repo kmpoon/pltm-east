@@ -12,164 +12,174 @@ import org.latlab.model.Gltm;
 import org.latlab.reasoner.CliqueTreeNode;
 import org.latlab.reasoner.ImpossibleEvidenceException;
 import org.latlab.reasoner.NaturalCliqueTreePropagation;
+import org.latlab.reasoner.NaturalCliqueTreePropagation.ComputeTime;
+import org.latlab.util.BuildConfig;
 
 public class MultithreadingEstimation extends Estimation {
 
-	/**
-	 * Creates a factory that can be used to construct {@code
-	 * MultithreadingEstimation}.
-	 * 
-	 * @param threads
-	 *            number of threads used in estimation
-	 * @param executor
-	 *            usually given by {@code Executors.newFixedThreadPool(int)}
-	 * @return factory for constructing estimation instances
-	 */
-	public static EstimationFactory createFactory(final int threads,
-			final ExecutorService executor) {
-		Prototype prototype = new Prototype() {
-			public Estimation create(Gltm model, Gltm clone,
-					MixedDataSet data, DataPropagation propagation,
-					double smoothing) {
-				return new MultithreadingEstimation(model, clone, data,
-						propagation, threads, executor, smoothing);
-			}
+    /**
+     * Creates a factory that can be used to construct {@code
+     * MultithreadingEstimation}.
+     * 
+     * @param threads
+     *            number of threads used in estimation
+     * @param executor
+     *            usually given by {@code Executors.newFixedThreadPool(int)}
+     * @return factory for constructing estimation instances
+     */
+    public static EstimationFactory createFactory(final int threads,
+            final ExecutorService executor) {
+        Prototype prototype = new Prototype() {
+            public Estimation create(Gltm model, Gltm clone, MixedDataSet data,
+                    DataPropagation propagation, double smoothing) {
+                return new MultithreadingEstimation(model, clone, data,
+                        propagation, threads, executor, smoothing);
+            }
 
-			public int partitions() {
-				return threads;
-			}
-		};
+            public int partitions() {
+                return threads;
+            }
+        };
 
-		return new EstimationFactory(prototype);
-	}
+        return new EstimationFactory(prototype);
+    }
 
-	/**
-	 * Holds the execution result after running a thread.
-	 * 
-	 * @author leonard
-	 * 
-	 */
-	private static class Result {
-		private RuntimeException exception = null;
-	}
+    /**
+     * Holds the execution result after running a thread.
+     * 
+     * @author leonard
+     * 
+     */
+    private static class Result {
+        private RuntimeException exception = null;
+    }
 
-	private final ExecutorService executor;
-	private final EqualPartitioner partitioner;
-	private final int threads;
+    private final ExecutorService executor;
+    private final EqualPartitioner partitioner;
+    private final int threads;
 
-	private MultithreadingEstimation(Gltm origin, Gltm model,
-			MixedDataSet data, DataPropagation propagation, int threads,
-			ExecutorService executors, double smoothing) {
-		super(origin, model, data, propagation, smoothing);
+    private MultithreadingEstimation(Gltm origin, Gltm model, MixedDataSet data,
+            DataPropagation propagation, int threads, ExecutorService executors,
+            double smoothing) {
+        super(origin, model, data, propagation, smoothing);
 
-		this.threads = threads;
-		this.executor = executors;
-		this.partitioner = new EqualPartitioner(data.size(), threads);
-	}
+        this.threads = threads;
+        this.executor = executors;
+        this.partitioner = new EqualPartitioner(data.size(), threads);
+    }
 
-	@Override
-	protected void computeSufficientStatistics() {
-		messagesPassed = 0;
+    @Override
+    protected void computeSufficientStatistics() {
+        messagesPassed = 0;
 
-		ExecutorCompletionService<Result> ecs =
-				new ExecutorCompletionService<Result>(executor);
+        ExecutorCompletionService<Result> ecs =
+                new ExecutorCompletionService<Result>(executor);
 
-		for (int i = 0; i < threads; i++) {
-			Result result = new Result();
-			ecs.submit(createRunnable(i, result), result);
-		}
+        for (int i = 0; i < threads; i++) {
+            Result result = new Result();
+            ecs.submit(createRunnable(i, result), result);
+        }
 
-		Result[] results = new Result[threads];
+        Result[] results = new Result[threads];
 
-		for (int i = 0; i < threads; i++) {
-			try {
-				results[i] = ecs.take().get();
-			} catch (InterruptedException e) {
-				e.printStackTrace(Log.errorWriter());
-			} catch (ExecutionException e) {
-				e.printStackTrace(Log.errorWriter());
-			}
-		}
+        for (int i = 0; i < threads; i++) {
+            try {
+                results[i] = ecs.take().get();
+            } catch (InterruptedException e) {
+                e.printStackTrace(Log.errorWriter());
+            } catch (ExecutionException e) {
+                e.printStackTrace(Log.errorWriter());
+            }
+        }
 
-		checkException(results);
-	}
+        checkException(results);
+    }
 
-	/**
-	 * Checks whether the results have any exception, and throws it if they
-	 * have.
-	 * 
-	 * <p>
-	 * Note: In case multiple exceptions are found, it only throws the first
-	 * exception that is not {@link ImpossibleEvidenceException} if there exists
-	 * one, or the first {@code ImpossibleEvidenceException} if there does not.
-	 * 
-	 * @param results
-	 *            execution results of {@link #createRunnable(int)}
-	 */
-	private void checkException(Result[] results) {
-		for (Result result : results) {
-			if (!(result.exception == null || result.exception instanceof ImpossibleEvidenceException))
-				throw new RuntimeException(result.exception);
-		}
+    /**
+     * Checks whether the results have any exception, and throws it if they
+     * have.
+     * 
+     * <p>
+     * Note: In case multiple exceptions are found, it only throws the first
+     * exception that is not {@link ImpossibleEvidenceException} if there exists
+     * one, or the first {@code ImpossibleEvidenceException} if there does not.
+     * 
+     * @param results
+     *            execution results of {@link #createRunnable(int)}
+     */
+    private void checkException(Result[] results) {
+        for (Result result : results) {
+            if (!(result.exception == null
+                    || result.exception instanceof ImpossibleEvidenceException))
+                throw new RuntimeException(result.exception);
+        }
 
-		for (Result result : results) {
-			if (result.exception != null)
-				throw result.exception;
-		}
-	}
+        for (Result result : results) {
+            if (result.exception != null)
+                throw result.exception;
+        }
+    }
 
-	private Runnable createRunnable(final int subset, final Result result) {
-		return new Runnable() {
-			public void run() {
-				try {
-					computeSufficientStatistics(subset);
-				} catch (RuntimeException e) {
-					result.exception = e;
-				}
-			}
-		};
-	}
+    private Runnable createRunnable(final int subset, final Result result) {
+        return new Runnable() {
+            public void run() {
+                try {
+                    computeSufficientStatistics(subset);
+                } catch (RuntimeException e) {
+                    result.exception = e;
+                }
+            }
+        };
+    }
 
-	/**
-	 * Computes sufficient statistics on the subset of data with the given
-	 * index.
-	 * 
-	 * @param subset
-	 *            index of the subset of data
-	 */
-	private void computeSufficientStatistics(int subset) {
-		int start = partitioner.startOf(subset);
-		int end = partitioner.endOf(subset);
+    /**
+     * Computes sufficient statistics on the subset of data with the given
+     * index.
+     * 
+     * @param subset
+     *            index of the subset of data
+     */
+    private void computeSufficientStatistics(int subset) {
+        int start = partitioner.startOf(subset);
+        int end = partitioner.endOf(subset);
 
-		for (int i = start; i < end; i++) {
-			NaturalCliqueTreePropagation ctp = propagation.compute(i);
-			addMessageCount(ctp.messagesPassed());
+        ComputeTime time = BuildConfig.PROFILE ? new ComputeTime() : null;
 
-			Iterator<SufficientStatistics> statisticsIterator =
-					sufficientStatistics.iterator();
+        for (int i = start; i < end; i++) {
+            NaturalCliqueTreePropagation ctp = propagation.compute(i);
 
-			for (AbstractNode node : ctp.cliqueTree().getNodes()) {
-				final SufficientStatistics statistics =
-						statisticsIterator.next();
+            if (BuildConfig.PROFILE) {
+                time.add(ctp.computeTime);
+            }
 
-				// make sure that the same statistics instance is not accessed
-				// by more than one threads simultaneously
-				synchronized (statistics) {
-					statistics.add(((CliqueTreeNode) node).potential(),
-							data.get(i).weight());
-				}
-			}
+            addMessageCount(ctp.messagesPassed());
 
-			double weight = data.get(i).weight();
+            Iterator<SufficientStatistics> statisticsIterator =
+                    sufficientStatistics.iterator();
 
-			synchronized (this) {
-				loglikelihood += ctp.loglikelihood() * weight;
-			}
-		}
+            for (AbstractNode node : ctp.cliqueTree().getNodes()) {
+                final SufficientStatistics statistics =
+                        statisticsIterator.next();
 
-	}
+                // make sure that the same statistics instance is not accessed
+                // by more than one threads simultaneously
+                synchronized (statistics) {
+                    statistics.add(((CliqueTreeNode) node).potential(),
+                            data.get(i).weight());
+                }
+            }
 
-	private synchronized void addMessageCount(int messages) {
-		messagesPassed += messages;
-	}
+            double weight = data.get(i).weight();
+
+            synchronized (this) {
+                loglikelihood += ctp.loglikelihood() * weight;
+            }
+        }
+
+        BuildConfig.profileLog(ComputeTime.format(time));
+    }
+
+    private synchronized void addMessageCount(int messages) {
+        messagesPassed += messages;
+    }
 }

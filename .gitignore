@@ -2,7 +2,8 @@
 /dist
 /.ant-targets-build.xml
 /target
+/project/build.properties
 /project/target
 /project/project/target
+/.settings
 .cache-main
-
