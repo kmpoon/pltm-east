@@ -41,9 +41,16 @@ public class ClassificationComputer {
 	}
 
 	public static void run(String modelFile, String dataFile, String outputPrefix,
-			boolean allowMissing) throws Exception {
+						   boolean allowMissing) throws Exception {
+		run(modelFile, dataFile, outputPrefix, allowMissing, false);
+	}
+
+	public static void run(String modelFile, String dataFile, String outputPrefix,
+			boolean allowMissing, boolean noClass) throws Exception {
 		MixedDataSet data = ArffLoader.load(dataFile);
-		data.setClassVariableToLast();
+
+		if (!noClass)
+			data.setClassVariableToLast();
 
 		if (!allowMissing)
 			data.removeMissingInstances();
@@ -55,7 +62,9 @@ public class ClassificationComputer {
 		ClassificationComputer computer = new ClassificationComputer(model, data,
 				outputPrefix);
 		computer.compute();
-		computer.computeForTarget();
+
+		if (!noClass)
+			computer.computeForTarget();
 	}
 
 	private final Gltm model;
